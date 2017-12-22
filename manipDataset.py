@@ -56,8 +56,17 @@ def read_train_file(filename):
             print("label go wrong!")
     return lines, labels
 
-def write_train_file(lines, labels, wv):
 
+def write_train_file(filename, labels, wv):
+    outfile = open(filename, 'w')
+    cnt = 0
+    for line in wv.file_lines:
+        print(cnt)
+        cnt += 1
+        line_tfidf = wv.cal_tfidf(line)
+        for t in line_tfidf:
+            outfile.write(str(t)+',')
+        outfile.write('\n')
 
 
 def remove_punctuation(s):
@@ -71,17 +80,18 @@ def remove_punctuation(s):
 
 FileName = "MulLabelTrain.ss"
 OutFileName = "result.csv"
-OutFile = open(OutFileName, 'w')
+# OutFile = open(OutFileName, 'w')
 Lines, Labels = read_train_file(FileName)
 WV = WordVector(['sssss'])
 WV.get_word_vector(Lines)
 print("got word vector")
-Mat = WV.cal_tfidf()
-print("got matrix")
-for i in WV.word_vector:
-    OutFile.write(i+',')
-for i in range(len(Labels)):
-    OutFile.write(Labels[i] + ' ')
-    for n in Mat[i]:
-        OutFile.write(str(n)+',')
-    OutFile.write('\n')
+# Mat = WV.cal_tfidf()
+# print("got matrix")
+# for i in WV.word_vector:
+#     OutFile.write(i+',')
+# for i in range(len(Labels)):
+#     OutFile.write(Labels[i] + ' ')
+#     for n in Mat[i]:
+#         OutFile.write(str(n)+',')
+#     OutFile.write('\n')
+write_train_file(OutFileName, Labels, WV)
