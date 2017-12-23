@@ -36,7 +36,8 @@ class WordVector(object):
         word_vec = self.word_vectors[word_vec_index]
         line_tfidf = [0 for t in range(len(word_vec))]
         for word in word_vec:
-            line_tfidf[word_vec.index(word)] = (line.count(word) / len(line) * self.words_idf[word])
+            if len(line) != 0:
+                line_tfidf[word_vec.index(word)] = (line.count(word) / len(line) * self.words_idf[word])
         return line_tfidf
 
 
@@ -57,7 +58,7 @@ def write_file(filename, wv, lines, word_vec_index):
     cnt = 0
     word_vec = wv.word_vectors[word_vec_index]
     for w in word_vec:
-        outfile.write(w+' ')
+        outfile.write(w+',')
     outfile.write('\n')
     for line in lines:
         cnt += 1
@@ -67,6 +68,7 @@ def write_file(filename, wv, lines, word_vec_index):
         for t in line_tfidf:
             outfile.write(str(t)+',')
         outfile.write('\n')
+    outfile.close()
 
 
 TrainTextFileName = "text_train_out_withoutend.txt"
