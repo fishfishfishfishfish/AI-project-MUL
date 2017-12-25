@@ -32,8 +32,15 @@ class WordVector(object):
             self.word_vectors.append(split_vec)
         self.word_vectors.append(temp_vec)
 
-    def cal_tfidf(self, line, word_vec_index):
-        word_vec = self.word_vectors[word_vec_index]
+    def get_most_word_vec(self, how_many):
+        res_word_vec = []
+        dictionary = sorted(self.words_idf.items(), key=lambda d: d[1], reverse=False)
+        for di in range(how_many):
+            res_word_vec.append(dictionary[di][0])
+        return res_word_vec
+
+    def cal_tfidf(self, line, word_vec):
+        # word_vec = self.word_vectors[word_vec_index]
         line_tfidf = [0 for t in range(len(word_vec))]
         for word in word_vec:
             if len(line) != 0:
@@ -53,33 +60,36 @@ def read_text(filename):
     return lines
 
 
-def write_file(filename, wv, lines, word_vec_index):
+def write_file(filename, wv, lines, word_vec):
     outfile = open(filename, 'w')
     cnt = 0
-    word_vec = wv.word_vectors[word_vec_index]
-    for w in word_vec:
-        outfile.write(w+',')
+    # word_vec = wv.word_vectors[word_vec_index].copy()
+    outfile.write(word_vec[0])
+    for w in range(1, len(word_vec)):
+        outfile.write(',' + word_vec[w])
     outfile.write('\n')
     for line in lines:
         cnt += 1
         if cnt % 100 == 0:
             print(cnt)
-        line_tfidf = wv.cal_tfidf(line, word_vec_index)
-        for t in line_tfidf:
-            outfile.write(str(t)+',')
+        line_tfidf = wv.cal_tfidf(line, word_vec)
+        outfile.write(str(line_tfidf[0]))
+        for t in range(1, len(line_tfidf)):
+            outfile.write(',' + str(line_tfidf[t]))
         outfile.write('\n')
     outfile.close()
 
 
 TrainTextFileName = "text_train_out_withoutend.txt"
 TestTextFileName = "text_test_out_withoutend.txt"
-TrainIDFFileName = "Train_TFIDF.csv"
-TestIDFFileName = "Test_TFIDF.csv"
+TrainIDFFileName = "Train_TFIDF_dense.csv"
+TestIDFFileName = "Test_TFIDF_dense.csv"
 Lines = read_text(TrainTextFileName)
 WV = WordVector()
 WV.get_word_vector(Lines)
 WV.split_word_vector(20)
-write_file(TrainIDFFileName, WV, Lines, 0)
+WordVec = WV.get_most_word_vec(4000)
+write_file(TrainIDFFileName, WV, Lines, WordVec)
 print("got Train")
 Lines = read_text(TestTextFileName)
-write_file(TestIDFFileName, WV, Lines, 0)
+write_file(TestIDFFileName, WV, Lines, WordVec)

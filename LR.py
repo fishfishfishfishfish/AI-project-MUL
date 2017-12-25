@@ -23,12 +23,15 @@ def get_logger():
 def get_train_data(filename):
     """
     :param filename: string, 训练文件名
-    :return: list[numpy.array[float]], 训练数据[x,x,x,...,y]
+    :return: list[numpy.array[float]], 训练数据[x1,x2,x3,...]
     """
     data = []
     f = open(filename, 'r')
-    for line in f.readlines():
+    lines = f.readlines()
+    lines.pop(0)
+    for line in lines:
         row = line.split(',')
+        row.pop(len(row)-1)
         for i in range(len(row)):
             row[i] = float(row[i])
         row.insert(0, 1)
@@ -36,45 +39,76 @@ def get_train_data(filename):
         data.append(row)
     return data
 
+
 # 从文件读取训练集标签
 def get_labels(filenanme):
+    """
+    :param filenanme: 训练文件名
+    :return: list[array[0, 0, 0]], 标签对应的0/1表示
+    """
+    labels = []
     f = open(filenanme, 'r')
     for label in f.readlines():
-        pass
+        label = label.strip('\n')
+        if label == "LOW":
+            labels.append(numpy.array([1, 0, 0]))
+        elif label == "MID":
+            labels.append(numpy.array([0, 1, 0]))
+        elif label == "HIG":
+            labels.append(numpy.array([0, 0, 1]))
+        else:
+            print("labels go wrong!")
+    return labels
 
 
 # 将训练数据随机分成平均的几份
-def split_dataset(data, num):
+def split_dataset(data_x, data_y, num):
     """
-    :param data: list[numpy.array[float]], 原始的训练集
+    :param data_x: list[array[float]], 原始的训练集特征向量
+    :param data_y: list[array[float]], 原始的训练集标签
     :param num: int, 要分成的份数
-    :return: list[list[array[float]], 分解后的num个数据集数组
+    :return: list[list[array[float]], 分解后的num个数据集集合
     """
     random.seed(1)
-    data_list = []
-    val_size = len(data) // num
+    data_x_list = []  # 由小份的数据集组成的
+    data_y_list = []  # 由对应的小份标签组成的
+    data_size = -1
+    if len(data_x) != len(data_y):
+        print("x and y don't match")
+    else:
+        data_size = len(data_x)
+    val_size = data_size // num
     for k in range(num - 1):
-        t_data = []
+        t_data_x = []
+        t_data_y = []
         for i in range(val_size):
-            t_data.append(data.pop(random.randint(0, len(data) - 1)))
-        data_list.append(t_data)
-    data_list.append(data)
-    return data_list
+            cur_choice = random.randint(0, len(data_x) - 1)
+            t_data_x.append(data_x.pop(cur_choice))
+            t_data_y.append(data_y.pop(cur_choice))
+        data_x_list.append(t_data_x)
+        data_y_list.append(t_data_y)
+    data_x_list.append(data_x)
+    data_y_list.append(data_y)
+    return data_x_list, data_y_list
 
 
 # 获取训练集和验证集
-def get_train_and_val(dataset, n):
+def get_train_and_val(data_x_list, data_y_list, n):
     """
-    :param dataset: list[list[array[float]], 分割后的数据集
+    :param data_x_list: list[list[array[float]], 分割后的数据集集合
+    :param data_y_list: list[list[array[0,0,0]]], 分割后的标签集合
     :param n: int, 第n份作为验证集
     :return: list[array[float]], list[array[flost]], 训练集和验证集
     """
-    traindata = []
-    for i in range(len(dataset)):
+    traindata_x = []
+    traindata_y = []
+    for i in range(len(data_x_list)):
         if i != n:
-            traindata += dataset[i]
-    valdata = dataset[n]  # 剩下的一份作为验证集
-    return traindata, valdata
+            traindata_x += data_x_list[i]
+            traindata_y += data_y_list[i]
+    valdata_x = data_x_list[n]  # 剩下的一份作为验证集
+    valdata_y = data_y_list[n]
+    return traindata_x, traindata_y, valdata_x, valdata_y
 
 
 # 计算对数似然值
@@ -88,8 +122,8 @@ def cal_likehood(x, y, w):
     x = numpy.array(x)
     w = numpy.array(w)
     xw = numpy.dot(x, w)
-    exp_xw = math.e ** (xw)
-    return y*xw-math.log(1+exp_xw,math.e)
+    exp_xw = math.e ** xw
+    return y*xw-math.log(1+exp_xw, math.e)
 
 
 # 计算一行x和当前w计算得到的梯度值
@@ -108,23 +142,25 @@ def cal_gradient(x, y, w):
     return (1/(1+exp_xw)-y)*x
 
 
-def train(traindata, eta):
+def train(traindata_x, traindata_y, eta):
     logger = logging.getLogger("loggingmodule.NomalLogger")
-    w = numpy.ones(len(traindata[0])-1)
+    traindata_col = len(traindata_x[0])
+    traindata_row = len(traindata_x)
+    w = numpy.ones(traindata_col)
     last_likehood = -20
     cnt = 0
-    while cnt < 5000:
-        grad_sum = numpy.zeros(len(traindata[0])-1)
+    while cnt < 100:
+        grad_sum = numpy.zeros(traindata_col)
         likehood = 0
-        for d in traindata:
-            grad_sum += cal_gradient(d[0:len(d)-1], d[len(d)-1], w)
-            likehood += cal_likehood(d[0:len(d)-1], d[len(d)-1], w)
+        for d in range(traindata_row):
+            grad_sum += cal_gradient(traindata_x[d], traindata_y[d], w)
+            likehood += cal_likehood(traindata_x[d], traindata_y[d], w)
         w = w - eta*grad_sum
         if cnt != 0:
             if likehood < last_likehood:
                 eta -= 0.0000005
                 logger.debug("active1 eta=%f" % eta)
-            elif likehood - last_likehood < 0.1 and likehood - last_likehood > 0:
+            elif 0 < likehood - last_likehood < 0.1:
                 eta += 0.0000001
                 logger.debug("active2 eta=%f" % eta)
         last_likehood = likehood
@@ -133,21 +169,41 @@ def train(traindata, eta):
     return w
 
 
-def val(valdata, w):
+def val(valdata_x, valdata_y, w):
     logger = logging.getLogger("loggingmodule.NomalLogger")
     correction = 0
-    for vd in valdata:
-        confidence = numpy.dot(vd[0:len(vd)-1], w)
+    val_size = len(valdata_x)
+    for vd in range(val_size):
+        confidence = numpy.dot(valdata_x[vd], w)
         confidence = 1/(1 + math.exp(-confidence))
         logger.debug(confidence)
         predict_res = 0
         if confidence >= 0.5:
             predict_res = 1
 
-        if predict_res == vd[len(vd)-1]:
+        if predict_res == valdata_y[vd]:
             correction += 1
-    return correction/len(valdata)
+    return correction/val_size
 
+
+def test(w, test_data, filename):
+    logger = logging.getLogger("loggingmodule.NomalLogger")
+    outfile = open(filename, 'w')
+    test_size = len(test_data)
+    for td in range(test_size):
+        confidence = []
+        for label_index in range(3):
+            confid_t = numpy.dot(test_data[td], w[label_index])
+            confidence.append(1 / (1 + math.exp(-confid_t)))
+        res_index = confidence.index(max(confidence))
+        if res_index == 0:
+            outfile.write("LOW\n")
+        elif res_index == 1:
+            outfile.write("MID\n")
+        elif res_index == 2:
+            outfile.write("HIG\n")
+        else:
+            print("test encount wrong label!")
 
 # 获取日志输出器
 Logger = get_logger()
@@ -156,18 +212,25 @@ Logger = get_logger()
 # print(Data)
 # train(Data, 1)
 # -------读取训练数据，根据S折交叉验证切割-------------
-Data = get_train_data('train.csv')
-Sfold = 10
-DataSet = split_dataset(Data, Sfold)
+DataX = get_train_data('Train_TFIDF_dense.csv')
+DataY = get_labels("label.txt")
+Test = get_train_data("Test_TFIDF_dense.csv")
+Sfold = 5
+DataListX, DataListY = split_dataset(DataX, DataY, Sfold)
 # Logger.info("DataSet is : ")
 # Logger.debug(numpy.array(DataSet))
 # S份中取出一份作为验证集，其余构成训练集
 for k in range(Sfold):
-    TrainData, ValData = get_train_and_val(DataSet, k)
-    W = train(TrainData, 0.000011)
-    print(W)
-    Logger.debug("-------------训练集反验证后的置信度-------------------")
-    print(val(TrainData, W))
-    Logger.debug("-------------验证集验证后的置信度-------------------")
-    print(val(ValData, W))
+    TrainDataX, TrainDataY, ValDataX, ValDataY = get_train_and_val(DataListX, DataListY, k)
+    TrainDataY = numpy.array(TrainDataY)
+    ValDataY = numpy.array(ValDataY)
+    W = []
+    for LabelIndex in range(3):
+        W.append(train(TrainDataX, TrainDataY[:, LabelIndex], 0.0001))
+        print(W[LabelIndex])
+        Logger.debug("-------------训练集反验证后的置信度-------------------")
+        print(val(TrainDataX, TrainDataY[:, LabelIndex], W[LabelIndex]))
+        Logger.debug("-------------验证集验证后的置信度-------------------")
+        print(val(ValDataX, ValDataY[:, LabelIndex], W[LabelIndex]))
+    test(W, Test, "Test_result.csv")
     break
