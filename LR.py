@@ -238,23 +238,26 @@ DataListX, DataListY = split_dataset(DataX, DataY, Sfold)
 # Logger.info("DataSet is : ")
 # Logger.debug(numpy.array(DataSet))
 # S份中取出一份作为验证集，其余构成训练集
-for k in range(Sfold):
-    TrainDataX, TrainDataY, ValDataX, ValDataY = get_train_and_val(DataListX, DataListY, k)
+for DataIndex in range(Sfold):
+    TrainDataX, TrainDataY, ValDataX, ValDataY = get_train_and_val(DataListX, DataListY, DataIndex)
     TrainDataY = numpy.array(TrainDataY)
     ValDataY = numpy.array(ValDataY)
+    DataYarray = numpy.array(DataY)
+    Wt = []
     W = []
     for LabelIndex in range(3):
         Eta = 0.0001
-        IterTimes = 100
-        if LabelIndex == 1:
-            IterTimes = 200
-            Eta = 0.00001
-        W.append(train(TrainDataX, TrainDataY[:, LabelIndex], Eta, IterTimes))
-        print(W[LabelIndex])
+        IterTimes = 50
+        # if LabelIndex == 1:
+        #     IterTimes = 200
+        #     Eta = 0.00001
+        Wt.append(train(TrainDataX, TrainDataY[:, LabelIndex], Eta, IterTimes))
+        print(Wt)
         Logger.debug("-------------训练集反验证后的置信度-------------------")
-        print(val(TrainDataX, TrainDataY[:, LabelIndex], W[LabelIndex]))
+        print(val(TrainDataX, TrainDataY[:, LabelIndex], Wt))
         Logger.debug("-------------验证集验证后的置信度-------------------")
-        print(val(ValDataX, ValDataY[:, LabelIndex], W[LabelIndex]))
+        print(val(ValDataX, ValDataY[:, LabelIndex], Wt))
+        W.append(train(DataX, DataYarray[:, LabelIndex], Eta, IterTimes))
     print("train correction:", val_all(TrainDataX, TrainDataY, W))
     print("val correction:", val_all(ValDataX, ValDataY, W))
     test(W, Test, "Test_result.csv")
