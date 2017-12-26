@@ -142,14 +142,14 @@ def cal_gradient(x, y, w):
     return (1/(1+exp_xw)-y)*x
 
 
-def train(traindata_x, traindata_y, eta):
+def train(traindata_x, traindata_y, eta, iter_times):
     logger = logging.getLogger("loggingmodule.NomalLogger")
     traindata_col = len(traindata_x[0])
     traindata_row = len(traindata_x)
     w = numpy.ones(traindata_col)
     last_likehood = -20
     cnt = 0
-    while cnt < 100:
+    while cnt < iter_times:
         grad_sum = numpy.zeros(traindata_col)
         likehood = 0
         for d in range(traindata_row):
@@ -158,10 +158,10 @@ def train(traindata_x, traindata_y, eta):
         w = w - eta*grad_sum
         if cnt != 0:
             if likehood < last_likehood:
-                eta -= 0.0000005
+                eta -= 0.00005
                 logger.debug("active1 eta=%f" % eta)
             elif 0 < likehood - last_likehood < 0.1:
-                eta += 0.0000001
+                eta += 0.00001
                 logger.debug("active2 eta=%f" % eta)
         last_likehood = likehood
         logger.info(likehood)
@@ -186,6 +186,23 @@ def val(valdata_x, valdata_y, w):
     return correction/val_size
 
 
+def val_all(valdata_x, valdata_y, w):
+    logger = logging.getLogger("loggingmodule.NomalLogger")
+    correction = 0
+    val_size = len(valdata_x)
+    for td in range(val_size):
+        confidence = []
+        for label_index in range(3):
+            confid_t = numpy.dot(valdata_x[td], w[label_index])
+            confidence.append(1 / (1 + math.exp(-confid_t)))
+        res_index = confidence.index(max(confidence))
+        curr_y = valdata_y[td].tolist()
+        real_index = curr_y.index(max(curr_y))
+        if res_index == real_index:
+            correction += 1
+    return correction / val_size
+
+
 def test(w, test_data, filename):
     logger = logging.getLogger("loggingmodule.NomalLogger")
     outfile = open(filename, 'w')
@@ -204,6 +221,7 @@ def test(w, test_data, filename):
             outfile.write("HIG\n")
         else:
             print("test encount wrong label!")
+
 
 # 获取日志输出器
 Logger = get_logger()
@@ -226,11 +244,18 @@ for k in range(Sfold):
     ValDataY = numpy.array(ValDataY)
     W = []
     for LabelIndex in range(3):
-        W.append(train(TrainDataX, TrainDataY[:, LabelIndex], 0.0001))
+        Eta = 0.0001
+        IterTimes = 100
+        if LabelIndex == 1:
+            IterTimes = 200
+            Eta = 0.00001
+        W.append(train(TrainDataX, TrainDataY[:, LabelIndex], Eta, IterTimes))
         print(W[LabelIndex])
         Logger.debug("-------------训练集反验证后的置信度-------------------")
         print(val(TrainDataX, TrainDataY[:, LabelIndex], W[LabelIndex]))
         Logger.debug("-------------验证集验证后的置信度-------------------")
         print(val(ValDataX, ValDataY[:, LabelIndex], W[LabelIndex]))
+    print("train correction:", val_all(TrainDataX, TrainDataY, W))
+    print("val correction:", val_all(ValDataX, ValDataY, W))
     test(W, Test, "Test_result.csv")
     break
