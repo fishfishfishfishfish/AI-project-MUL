@@ -32,9 +32,8 @@ class WordVector(object):
         s = idf_list.std()
         for k, v in self.words_idf.items():
             # self.words_idf[k] = (v-minimal)/(maximal-minimal)
-            # self.words_idf[k] = 100 * (v-m)/s  # std = 100, mean = 0
-            self.words_idf[k] = 50 * (v-m)/s + 100  # std = 100, mean = 200
-
+            self.words_idf[k] = 50 * (v-m)/s  # std = 100, mean = 0
+            # self.words_idf[k] = 50 * (v-m)/s + 100  # std = 100, mean = 200
 
     def split_word_vector(self, split_amount):
         random.seed(1)
@@ -63,6 +62,13 @@ class WordVector(object):
                 line_tfidf[word_vec.index(word)] = (line.count(word) / len(line) * self.words_idf[word])
         return line_tfidf
 
+    def cal_onehot(self, line, word_vec):
+        line_onehot = [0 for t in range(len(word_vec))]
+        for word in word_vec:
+            if line.count(word) != 0:
+                line_onehot = 1
+        return line_onehot
+
 
 def read_text(filename):
     f = open(filename, 'r')
@@ -76,7 +82,7 @@ def read_text(filename):
     return lines
 
 
-def write_file(filename, wv, lines, word_vec):
+def write_file(filename: str, wv: WordVector, lines, word_vec):
     outfile = open(filename, 'w')
     # cnt = 0
     # word_vec = wv.word_vectors[word_vec_index].copy()
@@ -85,40 +91,41 @@ def write_file(filename, wv, lines, word_vec):
         outfile.write(',' + word_vec[w])
     outfile.write('\n')
     for line in lines:
-        # cnt += 1
-        # if cnt % 100 == 0:
-        #     print(cnt)
-        line_tfidf = wv.cal_tfidf(line, word_vec)
-        outfile.write(str(line_tfidf[0]))
-        for t in range(1, len(line_tfidf)):
-            outfile.write(',' + str(line_tfidf[t]))
+        line_value = wv.cal_tfidf(line, word_vec)
+        # line_value = wv.cal_onehot(line, word_vec)
+        outfile.write(str(line_value[0]))
+        for t in range(1, len(line_value)):
+            outfile.write(',' + str(line_value[t]))
         outfile.write('\n')
     outfile.close()
 
 
 TrainTextFileName = "text_train_out_withoutend.txt"
 TestTextFileName = "text_test_out_withoutend.txt"
-# TrainIDFFileName = "Train_TFIDF_dense.csv"
-# TestIDFFileName = "Test_TFIDF_dense.csv"
 TrainLines = read_text(TrainTextFileName)
 TestLines = read_text(TestTextFileName)
 WV = WordVector()
 WV.get_word_vector(TrainLines)
 Dictionary = sorted(WV.words_idf.items(), key=lambda d: d[1], reverse=False)
+# 输出词典以及每个词的idf
 IDFFileName = "IDF_dic.txt"
 IDFFile = open(IDFFileName, 'w')
 for Di in Dictionary:
     IDFFile.write(str(Di)+'\n')
 IDFFile.close()
 print("got idf")
-# WV.split_word_vector(40)
+
+# 使用频度最高的词构成矩阵
 WordVec = WV.get_most_word_vec(4000)
-TrainIDFFileName = "Train_TFIDF_dense.csv"
-TestIDFFileName = "Test_TFIDF_dense.csv"
+TrainIDFFileName = "Train_TFIDF_dense_s50m0Nor.csv"
+TestIDFFileName = "Test_TFIDF_dense_s50m0Nor.csv"
 write_file(TrainIDFFileName, WV, TrainLines, WordVec)
 print("got Train")
 write_file(TestIDFFileName, WV, TestLines, WordVec)
 print("got Test")
+
+# 随机取词构成矩阵
+# WV.split_word_vector(40)
 # for FileIndex in range(0, 3):
 #     TrainIDFFileName = "Train_TFIDF_dense_" + str(FileIndex) + ".csv"
 #     TestIDFFileName = "Test_TFIDF_dense_" + str(FileIndex) + ".csv"
