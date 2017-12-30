@@ -18,10 +18,26 @@ class WordVector(object):
                     self.word_vectors.append(word)
                 else:
                     self.words_idf[word] += 1
+        self.normalize_words_idf()
+
+    def normalize_words_idf(self):
+        idf_list = []
         for k, v in self.words_idf.items():
             self.words_idf[k] = self.file_size / (1 + v)
+            idf_list.append(self.words_idf[k])
+        idf_list = numpy.array(idf_list)
+        # minimal = idf_list.min()
+        # maximal = idf_list.max()
+        m = idf_list.mean()
+        s = idf_list.std()
+        for k, v in self.words_idf.items():
+            # self.words_idf[k] = (v-minimal)/(maximal-minimal)
+            # self.words_idf[k] = 100 * (v-m)/s  # std = 100, mean = 0
+            self.words_idf[k] = 50 * (v-m)/s + 100  # std = 100, mean = 200
+
 
     def split_word_vector(self, split_amount):
+        random.seed(1)
         temp_vec = self.word_vectors.copy()
         self.word_vectors = []
         split_size = len(temp_vec)//split_amount
@@ -84,17 +100,30 @@ TrainTextFileName = "text_train_out_withoutend.txt"
 TestTextFileName = "text_test_out_withoutend.txt"
 # TrainIDFFileName = "Train_TFIDF_dense.csv"
 # TestIDFFileName = "Test_TFIDF_dense.csv"
-Lines = read_text(TrainTextFileName)
+TrainLines = read_text(TrainTextFileName)
+TestLines = read_text(TestTextFileName)
 WV = WordVector()
-WV.get_word_vector(Lines)
-WV.split_word_vector(20)
-# WordVec = WV.get_most_word_vec(4000)
-for FileIndex in range(20):
-    TrainIDFFileName = "Train_TFIDF_" + str(FileIndex) + ".csv"
-    TestIDFFileName = "Test_TFIDF_" + str(FileIndex) + ".csv"
-    WordVec = WV.word_vectors[FileIndex]
-    write_file(TrainIDFFileName, WV, Lines, WordVec)
-    print("got Train", FileIndex)
-    Lines = read_text(TestTextFileName)
-    write_file(TestIDFFileName, WV, Lines, WordVec)
-    print("got Test", FileIndex)
+WV.get_word_vector(TrainLines)
+Dictionary = sorted(WV.words_idf.items(), key=lambda d: d[1], reverse=False)
+IDFFileName = "IDF_dic.txt"
+IDFFile = open(IDFFileName, 'w')
+for Di in Dictionary:
+    IDFFile.write(str(Di)+'\n')
+IDFFile.close()
+print("got idf")
+# WV.split_word_vector(40)
+WordVec = WV.get_most_word_vec(4000)
+TrainIDFFileName = "Train_TFIDF_dense.csv"
+TestIDFFileName = "Test_TFIDF_dense.csv"
+write_file(TrainIDFFileName, WV, TrainLines, WordVec)
+print("got Train")
+write_file(TestIDFFileName, WV, TestLines, WordVec)
+print("got Test")
+# for FileIndex in range(0, 3):
+#     TrainIDFFileName = "Train_TFIDF_dense_" + str(FileIndex) + ".csv"
+#     TestIDFFileName = "Test_TFIDF_dense_" + str(FileIndex) + ".csv"
+#     WordVec = WV.word_vectors[FileIndex]
+#     write_file(TrainIDFFileName, WV, TrainLines, WordVec)
+#     print("got Train", FileIndex)
+#     write_file(TestIDFFileName, WV, TestLines, WordVec)
+#     print("got Test", FileIndex)

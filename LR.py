@@ -153,15 +153,16 @@ def train(traindata_x, traindata_y, eta, iter_times):
         grad_sum = numpy.zeros(traindata_col)
         likehood = 0
         for d in range(traindata_row):
+            # print(cnt, d)
             grad_sum += cal_gradient(traindata_x[d], traindata_y[d], w)
             likehood += cal_likehood(traindata_x[d], traindata_y[d], w)
         w = w - eta*grad_sum
         if cnt != 0:
-            if likehood < last_likehood:
-                eta -= 0.00005
+            if likehood - last_likehood < 0.1:
+                eta *= 0.9
                 logger.debug("active1 eta=%f" % eta)
-            elif 0 < likehood - last_likehood < 0.1:
-                eta += 0.00001
+            elif likehood - last_likehood > 100:
+                eta *= 1.1
                 logger.debug("active2 eta=%f" % eta)
         last_likehood = likehood
         logger.info(likehood)
@@ -234,7 +235,7 @@ DataX = get_train_data('Train_TFIDF_dense.csv')
 DataY = get_labels("label.txt")
 Test = get_train_data("Test_TFIDF_dense.csv")
 Sfold = 5
-DataListX, DataListY = split_dataset(DataX, DataY, Sfold)
+DataListX, DataListY = split_dataset(DataX.copy(), DataY.copy(), Sfold)
 # Logger.info("DataSet is : ")
 # Logger.debug(numpy.array(DataSet))
 # S份中取出一份作为验证集，其余构成训练集
@@ -247,17 +248,21 @@ for DataIndex in range(Sfold):
     W = []
     for LabelIndex in range(3):
         Eta = 0.0001
-        IterTimes = 50
+        IterTimes = 200
         # if LabelIndex == 1:
         #     IterTimes = 200
         #     Eta = 0.00001
         Wt.append(train(TrainDataX, TrainDataY[:, LabelIndex], Eta, IterTimes))
-        print(Wt)
+        W.append(train(DataX, DataYarray[:, LabelIndex], Eta, IterTimes+50))
+        print(Wt[LabelIndex])
         Logger.debug("-------------训练集反验证后的置信度-------------------")
-        print(val(TrainDataX, TrainDataY[:, LabelIndex], Wt))
+        print(val(TrainDataX, TrainDataY[:, LabelIndex], Wt[LabelIndex]))
+        print(val(TrainDataX, TrainDataY[:, LabelIndex], W[LabelIndex]))
         Logger.debug("-------------验证集验证后的置信度-------------------")
-        print(val(ValDataX, ValDataY[:, LabelIndex], Wt))
-        W.append(train(DataX, DataYarray[:, LabelIndex], Eta, IterTimes))
+        print(val(ValDataX, ValDataY[:, LabelIndex], Wt[LabelIndex]))
+        print(val(ValDataX, ValDataY[:, LabelIndex], W[LabelIndex]))
+    print("train correction:", val_all(TrainDataX, TrainDataY, Wt))
+    print("val correction:", val_all(ValDataX, ValDataY, Wt))
     print("train correction:", val_all(TrainDataX, TrainDataY, W))
     print("val correction:", val_all(ValDataX, ValDataY, W))
     test(W, Test, "Test_result.csv")
