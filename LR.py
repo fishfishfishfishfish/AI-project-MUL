@@ -20,7 +20,7 @@ def get_logger():
 
 
 # 从文件读取训练数据
-def get_train_data(filename):
+def get_train_data(filename: str):
     """
     :param filename: string, 训练文件名
     :return: list[numpy.array[float]], 训练数据[x1,x2,x3,...]
@@ -41,7 +41,7 @@ def get_train_data(filename):
 
 
 # 从文件读取训练集标签
-def get_labels(filenanme):
+def get_labels(filenanme: str):
     """
     :param filenanme: 训练文件名
     :return: list[array[0, 0, 0]], 标签对应的0/1表示
@@ -61,54 +61,54 @@ def get_labels(filenanme):
     return labels
 
 
+# 获取训练集验证集划分的方式
+def generate_split_list(amount: int, num: int):
+    random.seed(1)
+    order_list = [i for i in range(amount)]
+    split_list = []
+    split_size = amount // num
+    for j in range(num-1):
+        t_list = []
+        for k in range(split_size):
+            t_list.append(order_list.pop(random.randint(0, len(order_list)-1)))
+        split_list.append(t_list)
+    split_list.append(order_list)
+    return split_list
+
+
 # 将训练数据随机分成平均的几份
-def split_dataset(data_x, data_y, num):
+def split_dataset(data: list, traindata_list: list, valdata_list: list):
     """
-    :param data_x: list[array[float]], 原始的训练集特征向量
-    :param data_y: list[array[float]], 原始的训练集标签
-    :param num: int, 要分成的份数
-    :return: list[list[array[float]], 分解后的num个数据集集合
+    :param data: [array], 特征向量或标签[0,0,0]
+    :param traindata_list: [int]，训练集的序号
+    :param valdata_list: [int]， 验证集的序号
+    :return: 训练集和验证集
     """
     random.seed(1)
-    data_x_list = []  # 由小份的数据集组成的
-    data_y_list = []  # 由对应的小份标签组成的
-    data_size = -1
-    if len(data_x) != len(data_y):
-        print("x and y don't match")
-    else:
-        data_size = len(data_x)
-    val_size = data_size // num
-    for k in range(num - 1):
-        t_data_x = []
-        t_data_y = []
-        for i in range(val_size):
-            cur_choice = random.randint(0, len(data_x) - 1)
-            t_data_x.append(data_x.pop(cur_choice))
-            t_data_y.append(data_y.pop(cur_choice))
-        data_x_list.append(t_data_x)
-        data_y_list.append(t_data_y)
-    data_x_list.append(data_x)
-    data_y_list.append(data_y)
-    return data_x_list, data_y_list
+    traindata_set = []
+    valdata_set = []
+    if len(traindata_list)+len(valdata_list) != len(data):
+        print("splitting go wrong!")
+    for k in traindata_list:
+        traindata_set.append(data[k])
+    for k in valdata_list:
+        valdata_set.append(data[k])
+    return traindata_set, valdata_set
 
 
 # 获取训练集和验证集
-def get_train_and_val(data_x_list, data_y_list, n):
+def get_train_and_val(data_list: list, n: int):
     """
-    :param data_x_list: list[list[array[float]], 分割后的数据集集合
-    :param data_y_list: list[list[array[0,0,0]]], 分割后的标签集合
-    :param n: int, 第n份作为验证集
-    :return: list[array[float]], list[array[flost]], 训练集和验证集
+    :param data_list: list[list[int]], 分割后的数据集序号集合
+    :param n: int, 第n份作为验证集序号集
+    :return: list[int], list[int], 训练集序号和验证集序号
     """
-    traindata_x = []
-    traindata_y = []
-    for i in range(len(data_x_list)):
+    traindata_list = []
+    for i in range(len(data_list)):
         if i != n:
-            traindata_x += data_x_list[i]
-            traindata_y += data_y_list[i]
-    valdata_x = data_x_list[n]  # 剩下的一份作为验证集
-    valdata_y = data_y_list[n]
-    return traindata_x, traindata_y, valdata_x, valdata_y
+            traindata_list += data_list[i]
+    valdata_list = data_list[n]  # 剩下的一份作为验证集
+    return traindata_list, valdata_list
 
 
 # 计算对数似然值
@@ -170,38 +170,72 @@ def train(traindata_x, traindata_y, eta, iter_times):
     return w
 
 
-def val(valdata_x, valdata_y, w):
+def cal_confidence(x, w):
+    confidence = numpy.dot(x, w)
+    confidence = 1 / (1 + math.exp(-confidence))
+    return confidence
+
+
+def pre_one_label(x, w):
+    predict_res = 0
+    if cal_confidence(x, w) >= 0.5:
+        predict_res = 1
+    return predict_res
+
+
+def pre_all_labels(x: numpy.ndarray, w: list):
+    confidence = []
+    for wi in w:
+        confidence.append(cal_confidence(x, wi))
+    predict_res = confidence.index(max(confidence))
+    return predict_res
+
+
+def pre_bagging(x_set: list, w_set: list, correction: list):
+    predict_res = [0 for i in range(len(w_set[0]))]
+    bagging_size = -1
+    if len(x_set) == len(w_set):
+        bagging_size = len(x_set)
+    else:
+        print("bagging x doesnt match w!")
+    for i in range(bagging_size):
+        pre = pre_all_labels(x_set[i], w_set[i])
+        predict_res[pre] += correction[i]
+    return predict_res.index(max(predict_res))
+
+
+def val_one_label(valdata_x, valdata_y, w):
     logger = logging.getLogger("loggingmodule.NomalLogger")
     correction = 0
     val_size = len(valdata_x)
     for vd in range(val_size):
-        confidence = numpy.dot(valdata_x[vd], w)
-        confidence = 1/(1 + math.exp(-confidence))
-        logger.debug(confidence)
-        predict_res = 0
-        if confidence >= 0.5:
-            predict_res = 1
-
-        if predict_res == valdata_y[vd]:
+        if pre_one_label(valdata_x[vd], w) == valdata_y[vd]:
             correction += 1
     return correction/val_size
 
 
-def val_all(valdata_x, valdata_y, w):
+def val_all_label(valdata_x, valdata_y: numpy.ndarray, w: list):
     logger = logging.getLogger("loggingmodule.NomalLogger")
     correction = 0
     val_size = len(valdata_x)
     for td in range(val_size):
-        confidence = []
-        for label_index in range(3):
-            confid_t = numpy.dot(valdata_x[td], w[label_index])
-            confidence.append(1 / (1 + math.exp(-confid_t)))
-        res_index = confidence.index(max(confidence))
-        curr_y = valdata_y[td].tolist()
-        real_index = curr_y.index(max(curr_y))
-        if res_index == real_index:
+        real_label = valdata_y[td].tolist().index(1)
+        if pre_all_labels(valdata_x[td], w) == real_label:
             correction += 1
     return correction / val_size
+
+
+def val_bagging(data_x_set: list, data_y: numpy.ndarray, w_set: list, correction: list):
+    bagging_correction = 0
+    bagging_size = len(correction)
+    data_size, temp = data_y.shape
+    for i in range(data_size):
+        x_set = []
+        for k in range(bagging_size):
+            x_set.append(data_x_set[k][i])
+        if pre_bagging(x_set, w_set, correction) == data_y[i].tolist().index(1):
+            bagging_correction += 1
+    return bagging_correction/data_size
 
 
 def test(w, test_data, filename):
@@ -231,39 +265,37 @@ Logger = get_logger()
 # print(Data)
 # train(Data, 1)
 # -------读取训练数据，根据S折交叉验证切割-------------
-DataX = get_train_data('Train_TFIDF_dense.csv')
+SFold = 5
+Eta = 0.0001
+IterTimes = 200
+BaggingSize = 5
 DataY = get_labels("label.txt")
-Test = get_train_data("Test_TFIDF_dense.csv")
-Sfold = 5
-DataListX, DataListY = split_dataset(DataX.copy(), DataY.copy(), Sfold)
-# Logger.info("DataSet is : ")
-# Logger.debug(numpy.array(DataSet))
-# S份中取出一份作为验证集，其余构成训练集
-for DataIndex in range(Sfold):
-    TrainDataX, TrainDataY, ValDataX, ValDataY = get_train_and_val(DataListX, DataListY, DataIndex)
-    TrainDataY = numpy.array(TrainDataY)
-    ValDataY = numpy.array(ValDataY)
-    DataYarray = numpy.array(DataY)
-    Wt = []
+# 规划训练集和验证集的划分
+SplitList = generate_split_list(len(DataY), SFold)
+TrainList, ValList = get_train_and_val(SplitList, 0)
+Logger.info(TrainList)
+Logger.info(ValList)
+# 划分标签的训练和验证集
+TrainDataY, ValDataY = split_dataset(DataY, TrainList, ValList)
+TrainDataY = numpy.array(TrainDataY)
+ValDataY = numpy.array(ValDataY)
+Correction = []  # 之后用于加权的正确率
+WSet = []  # 每次训练的三个w组成一个WSet项
+TrainDataXSet = []  # 多次训练有多个训练集
+ValDataXSet = []  # 和训练集对应的多个验证集
+# 取出一份训练数据
+for TrainSetIndex in range(BaggingSize):
+    DataX = get_train_data("Train_onehot_"+str(TrainSetIndex)+".csv")
+    TrainDataX, ValDataX = split_dataset(DataX, TrainList, ValList)
+    TrainDataXSet.append(TrainDataX)
+    ValDataXSet.append(ValDataX)
     W = []
+    # 对三个标签都要训练
     for LabelIndex in range(3):
-        Eta = 0.0001
-        IterTimes = 200
-        # if LabelIndex == 1:
-        #     IterTimes = 200
-        #     Eta = 0.00001
-        Wt.append(train(TrainDataX, TrainDataY[:, LabelIndex], Eta, IterTimes))
-        W.append(train(DataX, DataYarray[:, LabelIndex], Eta, IterTimes+50))
-        print(Wt[LabelIndex])
-        Logger.debug("-------------训练集反验证后的置信度-------------------")
-        print(val(TrainDataX, TrainDataY[:, LabelIndex], Wt[LabelIndex]))
-        print(val(TrainDataX, TrainDataY[:, LabelIndex], W[LabelIndex]))
-        Logger.debug("-------------验证集验证后的置信度-------------------")
-        print(val(ValDataX, ValDataY[:, LabelIndex], Wt[LabelIndex]))
-        print(val(ValDataX, ValDataY[:, LabelIndex], W[LabelIndex]))
-    print("train correction:", val_all(TrainDataX, TrainDataY, Wt))
-    print("val correction:", val_all(ValDataX, ValDataY, Wt))
-    print("train correction:", val_all(TrainDataX, TrainDataY, W))
-    print("val correction:", val_all(ValDataX, ValDataY, W))
-    test(W, Test, "Test_result.csv")
-    break
+        W.append(train(TrainDataX, TrainDataY[:, LabelIndex], Eta, IterTimes))
+    WSet.append(W)
+    Correction.append(val_all_label(TrainDataX, TrainDataY, W))
+    print("train correction:", Correction)
+    print("val correction:", val_all_label(ValDataX, ValDataY, W))
+print("train after bagging: ", val_bagging(TrainDataXSet, TrainDataY, WSet, Correction))
+print("val after bagging: ", val_bagging(ValDataXSet, ValDataY, WSet, Correction))
