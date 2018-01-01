@@ -66,7 +66,7 @@ def get_labels(filenanme: str):
     return labels
 
 
-# 将训练数据随机分成平均的几份
+# 将训练数据切除验证集
 def split_dataset(data: list, traindata_list: list, valdata_list: list):
     """
     :param data: [array], 特征向量或标签[0,0,0]
@@ -179,7 +179,7 @@ def train(traindata_x, traindata_y, eta, iter_times):
 
 # 获取日志输出器
 Logger = get_logger()
-Eta = 0.000001
+Eta = 0.00001
 IterTimes = 100
 SFold = 5
 TrainFile = open("text_train_out_withoutend.txt")
@@ -195,11 +195,11 @@ TrainSentences, ValSentences = split_dataset(TrainSentences, TrainList, ValList)
 TrainLabels, ValLabels = split_dataset(Labels, TrainList, ValList)
 TrainLabels = numpy.array(TrainLabels)
 ValLabels = numpy.array(ValLabels)
-# Text = TrainText + TestText
-# Sentences = [line.split(' ') for line in Text]
-# Model = gensim.models.Word2Vec(Sentences, min_count=1, size=100, window=5, iter=100)
-# Model.save("word_vectors")
-Model = gensim.models.Word2Vec.load("word_vectors")
+Text = TrainText + TestText
+Sentences = [line.split(' ') for line in Text]
+Model = gensim.models.Word2Vec(Sentences, min_count=1, size=300, window=5, iter=200)
+Model.save("word_vectors_size300&iter200")
+# Model = gensim.models.Word2Vec.load("word_vectors")
 TrainX = []
 ValX = []
 for Sentence in TrainSentences:
