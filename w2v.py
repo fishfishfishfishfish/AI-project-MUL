@@ -85,11 +85,19 @@ def split_dataset(data: list, traindata_list: list, valdata_list: list):
     return traindata_set, valdata_set
 
 
+def remove_null(sentences):
+    for s in range(len(sentences)):
+        while '' in sentences[s]:
+            sentences[s].remove('')
+
+
 def get_word_vec(model: gensim.models.word2vec.Word2Vec, sentence: list):
     res = numpy.zeros(model.vector_size)
     for word in sentence:
-        res += model[word]
-    res = res / len(sentence)
+        if word in model:
+            res += model[word]
+    if len(sentence) > 0:
+        res = res / len(sentence)
     return res
 
 
@@ -179,27 +187,32 @@ def train(traindata_x, traindata_y, eta, iter_times):
 
 # 获取日志输出器
 Logger = get_logger()
-Eta = 0.00001
-IterTimes = 100
+Eta = 0.0001
+IterTimes = 200
 SFold = 5
 TrainFile = open("text_train_out_withoutend.txt")
 TestFile = open("text_test_out_withoutend.txt")
 Labels = get_labels("label.txt")
 TrainText = TrainFile.readlines()
 TestText = TestFile.readlines()
-TrainSentences = [line.split(' ') for line in TrainText]
-TestSentences = [line.split(' ') for line in TestText]
+TrainSentences = [line.strip('\n').split(' ') for line in TrainText]
+TestSentences = [line.strip('\n').split(' ') for line in TestText]
+remove_null(TrainSentences)
+remove_null(TestSentences)
 DataList = generate_split_list(len(TrainSentences), 5)
 TrainList, ValList = get_train_and_val(DataList, 0)
 TrainSentences, ValSentences = split_dataset(TrainSentences, TrainList, ValList)
 TrainLabels, ValLabels = split_dataset(Labels, TrainList, ValList)
 TrainLabels = numpy.array(TrainLabels)
 ValLabels = numpy.array(ValLabels)
-Text = TrainText + TestText
-Sentences = [line.split(' ') for line in Text]
-Model = gensim.models.Word2Vec(Sentences, min_count=1, size=300, window=5, iter=200)
-Model.save("word_vectors_size300&iter200")
-# Model = gensim.models.Word2Vec.load("word_vectors")
+# 生成模型
+# Text = TrainText + TestText
+# Sentences = [line.split(' ') for line in Text]
+# Model = gensim.models.Word2Vec(Sentences, min_count=1, size=300, window=5, iter=200)
+# Model.save("word_vectors_size300&iter200")
+# 加载模型
+# Model = gensim.models.Word2Vec.load("GoogleNews-vectors-negative300.bin")
+Model = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin', binary=True)
 TrainX = []
 ValX = []
 for Sentence in TrainSentences:
