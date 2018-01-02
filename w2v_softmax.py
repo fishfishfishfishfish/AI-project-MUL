@@ -185,11 +185,20 @@ def val(data_set_x: list, data_set_y: numpy.ndarray, w):
     return correction/len(data_set_x)
 
 
+def test(data_set_x: list, w, filename: str):
+    fout = open(filename, 'w')
+    label_str = ['LOW', 'MID', "HIG"]
+    for i in range(len(data_set_x)):
+        fout.write(label_str[predict(data_set_x[i], w)]+'\n')
+    fout.close()
+
+
 # 获取日志输出器
 Logger = get_logger()
-Eta = 0.000001
-IterTimes = 100
+Eta = 0.00001
+IterTimes = 400
 SFold = 5
+print("softmax", "Eta=", Eta, "IterTimes=", IterTimes)
 TrainFile = open("text_train_out_withoutend.txt")
 TestFile = open("text_test_out_withoutend.txt")
 Labels = get_labels("label.txt")
@@ -205,11 +214,12 @@ TrainSentences, ValSentences = split_dataset(TrainSentences, TrainList, ValList)
 TrainLabels, ValLabels = split_dataset(Labels, TrainList, ValList)
 TrainLabels = numpy.array(TrainLabels)
 ValLabels = numpy.array(ValLabels)
-# Text = TrainText + TestText
-# Sentences = [line.split(' ') for line in Text]
-# Model = gensim.models.Word2Vec(Sentences, min_count=1, size=300, window=5, iter=200)
-# Model.save("word_vectors_size300&iter200")
-Model = gensim.models.Word2Vec.load("word_vectors")
+Text = TrainText + TestText
+Sentences = [line.split(' ') for line in Text]
+Model = gensim.models.Word2Vec(Sentences, min_count=1, size=700, window=7, iter=100)
+Model.save("word_vectors_size500&window7&iter100")
+# Model = gensim.models.Word2Vec.load("word_vectors_size500&window7&iter100")
+print("got model size500 window7 iter100")
 TrainX = []
 ValX = []
 for Sentence in TrainSentences:
@@ -219,3 +229,7 @@ for Sentence in ValSentences:
 W = train(TrainX, TrainLabels, Eta, IterTimes)
 print("train correction:", val(TrainX, TrainLabels, W))
 print("val correction:", val(ValX, ValLabels, W))
+TestX = []
+for Sentence in TestSentences:
+    TestX.append(get_word_vec(Model, Sentence))
+test(TestX, W, "w2v_softmax_result.txt")
