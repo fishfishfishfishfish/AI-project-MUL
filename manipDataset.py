@@ -54,6 +54,13 @@ class WordVector(object):
             res_word_vec.append(dictionary[di][0])
         return res_word_vec
 
+    def get_least_word_vec(self, how_many):
+        res_word_vec = []
+        dictionary = sorted(self.words_idf.items(), key=lambda d: d[1], reverse=True)
+        for di in range(how_many):
+            res_word_vec.append(dictionary[di][0])
+        return res_word_vec
+
     def cal_tfidf(self, line, word_vec):
         # word_vec = self.word_vectors[word_vec_index]
         line_tfidf = [0 for t in range(len(word_vec))]
@@ -66,7 +73,7 @@ class WordVector(object):
         line_onehot = [0 for t in range(len(word_vec))]
         for word in word_vec:
             if line.count(word) != 0:
-                line_onehot = 1
+                line_onehot[word_vec.index(word)] = 1
         return line_onehot
 
 
@@ -91,8 +98,8 @@ def write_file(filename: str, wv: WordVector, lines, word_vec):
         outfile.write(',' + word_vec[w])
     outfile.write('\n')
     for line in lines:
-        line_value = wv.cal_tfidf(line, word_vec)
-        # line_value = wv.cal_onehot(line, word_vec)
+        # line_value = wv.cal_tfidf(line, word_vec)
+        line_value = wv.cal_onehot(line, word_vec)
         outfile.write(str(line_value[0]))
         for t in range(1, len(line_value)):
             outfile.write(',' + str(line_value[t]))
@@ -106,8 +113,8 @@ TrainLines = read_text(TrainTextFileName)
 TestLines = read_text(TestTextFileName)
 WV = WordVector()
 WV.get_word_vector(TrainLines)
-Dictionary = sorted(WV.words_idf.items(), key=lambda d: d[1], reverse=False)
 # 输出词典以及每个词的idf
+Dictionary = sorted(WV.words_idf.items(), key=lambda d: d[1], reverse=False)
 IDFFileName = "IDF_dic.txt"
 IDFFile = open(IDFFileName, 'w')
 for Di in Dictionary:
@@ -116,21 +123,21 @@ IDFFile.close()
 print("got idf")
 
 # 使用频度最高的词构成矩阵
-WordVec = WV.get_most_word_vec(4000)
-TrainIDFFileName = "Train_TFIDF_dense_s50m0Nor.csv"
-TestIDFFileName = "Test_TFIDF_dense_s50m0Nor.csv"
-write_file(TrainIDFFileName, WV, TrainLines, WordVec)
-print("got Train")
-write_file(TestIDFFileName, WV, TestLines, WordVec)
-print("got Test")
+# WordVec = WV.get_most_word_vec(4000)
+# TrainIDFFileName = "Train_TFIDF_dense_s50m0Nor.csv"
+# TestIDFFileName = "Test_TFIDF_dense_s50m0Nor.csv"
+# write_file(TrainIDFFileName, WV, TrainLines, WordVec)
+# print("got Train")
+# write_file(TestIDFFileName, WV, TestLines, WordVec)
+# print("got Test")
 
 # 随机取词构成矩阵
-# WV.split_word_vector(40)
-# for FileIndex in range(0, 3):
-#     TrainIDFFileName = "Train_TFIDF_dense_" + str(FileIndex) + ".csv"
-#     TestIDFFileName = "Test_TFIDF_dense_" + str(FileIndex) + ".csv"
-#     WordVec = WV.word_vectors[FileIndex]
-#     write_file(TrainIDFFileName, WV, TrainLines, WordVec)
-#     print("got Train", FileIndex)
-#     write_file(TestIDFFileName, WV, TestLines, WordVec)
-#     print("got Test", FileIndex)
+WV.split_word_vector(40)
+for FileIndex in range(3, 39):
+    TrainIDFFileName = "Train_onehot_" + str(FileIndex) + ".csv"
+    TestIDFFileName = "Test_onehot_" + str(FileIndex) + ".csv"
+    WordVec = WV.word_vectors[FileIndex]
+    write_file(TrainIDFFileName, WV, TrainLines, WordVec)
+    print("got Train", FileIndex)
+    write_file(TestIDFFileName, WV, TestLines, WordVec)
+    print("got Test", FileIndex)

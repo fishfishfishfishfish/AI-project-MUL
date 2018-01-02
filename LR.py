@@ -4,6 +4,13 @@ import random
 import logging
 
 
+def list_sum(li):
+    res = 0
+    for l in li:
+        res += l
+    return res
+
+
 # 配置日志输出，方便debug
 def get_logger():
     log_file = "./nomal_logger.log"
@@ -268,7 +275,8 @@ Logger = get_logger()
 SFold = 5
 Eta = 0.0001
 IterTimes = 200
-BaggingSize = 5
+BaggingSize = 20
+print("Eta=", Eta, "\nIterTimes=", IterTimes, "\nBaggingSize=", BaggingSize)
 DataY = get_labels("label.txt")
 # 规划训练集和验证集的划分
 SplitList = generate_split_list(len(DataY), SFold)
@@ -297,5 +305,10 @@ for TrainSetIndex in range(BaggingSize):
     Correction.append(val_all_label(TrainDataX, TrainDataY, W))
     print("train correction:", Correction)
     print("val correction:", val_all_label(ValDataX, ValDataY, W))
+# 使正确率和为1
+print("使正确率和为1")
+for CI in range(len(Correction)):
+    Correction[CI] = Correction[CI]/list_sum(Correction)
+print(Correction)
 print("train after bagging: ", val_bagging(TrainDataXSet, TrainDataY, WSet, Correction))
 print("val after bagging: ", val_bagging(ValDataXSet, ValDataY, WSet, Correction))
