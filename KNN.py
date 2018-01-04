@@ -174,5 +174,5 @@ for Sentence in TestSentences:
     TestX.append(get_word_vec(Model, Sentence))
 print("got sentences")
 for K in range(1, 20):
-    print(str(K)+"NN:", val(TrainX, TrainLabels, ValX, ValLabels, K))
+    print(str(K*100)+"NN:", val(TrainX, TrainLabels, ValX, ValLabels, K*100))
 # test(TrainX, TrainLabels, TestX, K, str(K)+"NN_result.csv")

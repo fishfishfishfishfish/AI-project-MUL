@@ -196,11 +196,11 @@ def test(data_set_x: list, w, filename: str):
 # 获取日志输出器
 Logger = get_logger()
 Eta = 0.00001
-IterTimes = 400
+IterTimes = 800
 SFold = 5
 print("softmax", "Eta=", Eta, "IterTimes=", IterTimes)
-TrainFile = open("text_train_out_withoutend.txt")
-TestFile = open("text_test_out_withoutend.txt")
+TrainFile = open("TrainText.csv")
+TestFile = open("TestText.csv")
 Labels = get_labels("label.txt")
 TrainText = TrainFile.readlines()
 TestText = TestFile.readlines()
@@ -217,8 +217,8 @@ ValLabels = numpy.array(ValLabels)
 Text = TrainText + TestText
 Sentences = [line.split(' ') for line in Text]
 Model = gensim.models.Word2Vec(Sentences, min_count=1, size=700, window=7, iter=100)
-Model.save("word_vectors_size500&window7&iter100")
-# Model = gensim.models.Word2Vec.load("word_vectors_size500&window7&iter100")
+Model.save("word_vectors_size700&window7&iter100")
+# Model = gensim.models.Word2Vec.load("word_vectors_size700&window7&iter100")
 print("got model size500 window7 iter100")
 TrainX = []
 ValX = []
@@ -232,4 +232,4 @@ print("val correction:", val(ValX, ValLabels, W))
 TestX = []
 for Sentence in TestSentences:
     TestX.append(get_word_vec(Model, Sentence))
-test(TestX, W, "w2v_softmax_result.txt")
+test(TestX, W, "w2v_softmax_result.csv")
