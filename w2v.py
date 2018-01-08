@@ -3,6 +3,7 @@ import random
 import numpy
 import math
 import logging
+import matplotlib.pyplot as plt
 
 
 # 配置日志输出，方便debug
@@ -164,6 +165,7 @@ def train(traindata_x, traindata_y, eta, iter_times):
     w = numpy.ones(traindata_col)
     last_likehood = -20
     cnt = 0
+    record_likehood = []
     while cnt < iter_times:
         grad_sum = numpy.zeros(traindata_col)
         likehood = 0
@@ -180,9 +182,18 @@ def train(traindata_x, traindata_y, eta, iter_times):
                 eta *= 1.1
                 logger.debug("active2 eta=%f" % eta)
         last_likehood = likehood
-        logger.info(likehood)
+        record_likehood.append(likehood)
+        # logger.info(likehood)
         cnt += 1
-    return w
+    return w, record_likehood
+
+
+def test(test_x, w, filename):
+    res_string = ['LOW', 'MID', 'HIG']
+    fout = open(filename, 'w')
+    for x in test_x:
+        res = pre_all_labels(x, w)
+        fout.write(res_string[res] + '\n')
 
 
 # 获取日志输出器
@@ -190,9 +201,15 @@ Logger = get_logger()
 Eta = 0.0001
 IterTimes = 200
 SFold = 5
+W2VIter = 100
+W2VSize = 100
+W2VWindow = 5
+W2VName = "w2v_Iter" + str(W2VIter) + "&Size" + str(W2VSize) + "&Window" + str(W2VWindow)
+print("LR : IterTimes = ", IterTimes)
+print("w2v Model = ", W2VName)
 TrainFile = open("text_train_out_withoutend.txt")
 TestFile = open("text_test_out_withoutend.txt")
-Labels = get_labels("label.txt")
+Labels = get_labels("label.csv")
 TrainText = TrainFile.readlines()
 TestText = TestFile.readlines()
 TrainSentences = [line.strip('\n').split(' ') for line in TrainText]
@@ -206,12 +223,12 @@ TrainLabels, ValLabels = split_dataset(Labels, TrainList, ValList)
 TrainLabels = numpy.array(TrainLabels)
 ValLabels = numpy.array(ValLabels)
 # 生成模型
-# Text = TrainText + TestText
-# Sentences = [line.split(' ') for line in Text]
-# Model = gensim.models.Word2Vec(Sentences, min_count=1, size=300, window=5, iter=200)
-# Model.save("word_vectors_size300&iter200")
+Text = TrainText + TestText
+Sentences = [line.split(' ') for line in Text]
+Model = gensim.models.Word2Vec(Sentences, min_count=1, size=W2VSize, window=W2VWindow, iter=W2VIter)
+Model.save(W2VName)
 # 加载模型
-Model = gensim.models.Word2Vec.load("word_vectors_size500&window7&iter100")
+# Model = gensim.models.Word2Vec.load(W2VName)
 # Model = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin', binary=True)
 print("got model")
 TrainX = []
@@ -221,8 +238,20 @@ for Sentence in TrainSentences:
 for Sentence in ValSentences:
     ValX.append(get_word_vec(Model, Sentence))
 W = []
+LikeHoodRecords = []
 for LabelsIndex in range(3):
     Logger.info(str(LabelsIndex)+"--------------------------")
-    W.append(train(TrainX, TrainLabels[:, LabelsIndex], Eta, IterTimes))
-print(val_all_label(ValX, ValLabels, W))
-print(Model.vector_size)
+    temp_w, temp_likehood = train(TrainX, TrainLabels[:, LabelsIndex], Eta, IterTimes)
+    W.append(temp_w)
+    LikeHoodRecords.append(temp_likehood)
+LikeHoodRange = range(len(LikeHoodRecords[0]))
+plt.plot(LikeHoodRange, LikeHoodRecords[0], 'b-', LikeHoodRange,
+         LikeHoodRecords[1], 'g-', LikeHoodRange, LikeHoodRecords[2], 'r-')
+plt.show()
+print("train correction:", val_all_label(TrainX, TrainLabels, W))
+print("val correction:", val_all_label(ValX, ValLabels, W))
+TestX = []
+# 取得测试数据的词向量
+for Sentence in TestSentences:
+    TestX.append(get_word_vec(Model, Sentence))
+test(TestX, W, "w2v_LR_result.csv")
