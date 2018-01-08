@@ -25,14 +25,14 @@ class WordVector(object):
         for k, v in self.words_idf.items():
             self.words_idf[k] = self.file_size / (1 + v)
             idf_list.append(self.words_idf[k])
-        idf_list = numpy.array(idf_list)
+        # idf_list = numpy.array(idf_list)
         # minimal = idf_list.min()
         # maximal = idf_list.max()
-        m = idf_list.mean()
-        s = idf_list.std()
-        for k, v in self.words_idf.items():
+        # m = idf_list.mean()
+        # s = idf_list.std()
+        # for k, v in self.words_idf.items():
             # self.words_idf[k] = (v-minimal)/(maximal-minimal)
-            self.words_idf[k] = 50 * (v-m)/s  # std = 100, mean = 0
+            # self.words_idf[k] = 50 * (v-m)/s  # std = 100, mean = 0
             # self.words_idf[k] = 50 * (v-m)/s + 100  # std = 100, mean = 200
 
     def split_word_vector(self, split_amount):
@@ -123,21 +123,21 @@ IDFFile.close()
 print("got idf")
 
 # 使用频度最高的词构成矩阵
-# WordVec = WV.get_most_word_vec(4000)
-# TrainIDFFileName = "Train_TFIDF_dense_s50m0Nor.csv"
-# TestIDFFileName = "Test_TFIDF_dense_s50m0Nor.csv"
-# write_file(TrainIDFFileName, WV, TrainLines, WordVec)
-# print("got Train")
-# write_file(TestIDFFileName, WV, TestLines, WordVec)
-# print("got Test")
+WordVec = WV.get_most_word_vec(4000)
+TrainIDFFileName = "Train_TFIDF_dense.csv"
+TestIDFFileName = "Test_TFIDF_dense.csv"
+write_file(TrainIDFFileName, WV, TrainLines, WordVec)
+print("got Train")
+write_file(TestIDFFileName, WV, TestLines, WordVec)
+print("got Test")
 
 # 随机取词构成矩阵
-WV.split_word_vector(40)
-for FileIndex in range(3, 39):
-    TrainIDFFileName = "Train_onehot_" + str(FileIndex) + ".csv"
-    TestIDFFileName = "Test_onehot_" + str(FileIndex) + ".csv"
-    WordVec = WV.word_vectors[FileIndex]
-    write_file(TrainIDFFileName, WV, TrainLines, WordVec)
-    print("got Train", FileIndex)
-    write_file(TestIDFFileName, WV, TestLines, WordVec)
-    print("got Test", FileIndex)
+# WV.split_word_vector(40)
+# for FileIndex in range(3, 39):
+#     TrainIDFFileName = "Train_onehot_" + str(FileIndex) + ".csv"
+#     TestIDFFileName = "Test_onehot_" + str(FileIndex) + ".csv"
+#     WordVec = WV.word_vectors[FileIndex]
+#     write_file(TrainIDFFileName, WV, TrainLines, WordVec)
+#     print("got Train", FileIndex)
+#     write_file(TestIDFFileName, WV, TestLines, WordVec)
+#     print("got Test", FileIndex)

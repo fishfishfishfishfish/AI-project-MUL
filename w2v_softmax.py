@@ -198,10 +198,15 @@ Logger = get_logger()
 Eta = 0.00001
 IterTimes = 800
 SFold = 5
-print("softmax", "Eta=", Eta, "IterTimes=", IterTimes)
+W2VIter = 100
+W2VSize = 700
+W2VWindow = 7
+W2VName = "w2v_Iter" + str(W2VIter) + "&Size" + str(W2VSize) + "&Window" + str(W2VWindow)
+print("softmax : IterTimes = ", IterTimes)
+print("w2v Model = ", W2VName)
 TrainFile = open("TrainText.csv")
 TestFile = open("TestText.csv")
-Labels = get_labels("label.txt")
+Labels = get_labels("label.csv")
 TrainText = TrainFile.readlines()
 TestText = TestFile.readlines()
 TrainSentences = [line.strip('\n').split(' ') for line in TrainText]
@@ -216,10 +221,10 @@ TrainLabels = numpy.array(TrainLabels)
 ValLabels = numpy.array(ValLabels)
 Text = TrainText + TestText
 Sentences = [line.split(' ') for line in Text]
-Model = gensim.models.Word2Vec(Sentences, min_count=1, size=700, window=7, iter=100)
-Model.save("word_vectors_size700&window7&iter100")
-# Model = gensim.models.Word2Vec.load("word_vectors_size700&window7&iter100")
-print("got model size500 window7 iter100")
+Model = gensim.models.Word2Vec(Sentences, min_count=1, size=W2VSize, window=W2VWindow, iter=W2VIter)
+Model.save(W2VName)
+# Model = gensim.models.Word2Vec.load(W2VName)
+print("got model")
 TrainX = []
 ValX = []
 for Sentence in TrainSentences:

@@ -118,7 +118,7 @@ def classify(traindata, trainlabel, testdata: numpy.ndarray, k):
 def val(traindata, trainlabel, valdata, vallabel, k):
     correction = 0
     for i in range(len(valdata)):
-        # print(classify(traindata, trainlabel, valdata[i], k))
+        # print(i)
         if classify(traindata, trainlabel, valdata[i], k) == vallabel[i]:
             correction += 1
     return correction/len(vallabel)
@@ -143,10 +143,14 @@ Logger = get_logger()
 Eta = 0.00001
 IterTimes = 250
 SFold = 5
-# K = 5
-TrainFile = open("text_train_out_withoutend.txt")
-TestFile = open("text_test_out_withoutend.txt")
-Labels = get_labels("label.txt")
+W2VIter = 100
+W2VSize = 100
+W2VWindow = 5
+W2VName = "w2v_Iter" + str(W2VIter) + "&Size" + str(W2VSize) + "&Window" + str(W2VWindow)
+print(W2VName)
+TrainFile = open("TrainText.csv")
+TestFile = open("TestText.csv")
+Labels = get_labels("label.csv")
 TrainText = TrainFile.readlines()
 TestText = TestFile.readlines()
 TrainSentences = [line.strip('\n').split(' ') for line in TrainText]
@@ -159,9 +163,9 @@ TrainSentences, ValSentences = split_dataset(TrainSentences, TrainList, ValList)
 TrainLabels, ValLabels = split_dataset(Labels, TrainList, ValList)
 # Text = TrainText + TestText
 # Sentences = [line.split(' ') for line in Text]
-# Model = gensim.models.Word2Vec(Sentences, min_count=1, size=100, window=5, iter=100)
-# Model.save("word_vectors_size100&window5&iter100")
-Model = gensim.models.Word2Vec.load("word_vectors_size100&window5&iter100")
+# Model = gensim.models.Word2Vec(Sentences, min_count=1, size=W2VSize, window=W2VWindow, iter=W2VIter)
+# Model.save(W2VName)
+Model = gensim.models.Word2Vec.load(W2VName)
 print("got model")
 TrainX = []
 ValX = []

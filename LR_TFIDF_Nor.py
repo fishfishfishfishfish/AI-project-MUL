@@ -6,7 +6,7 @@ import logging
 
 # 配置日志输出，方便debug
 def get_logger():
-    log_file = "./nomal_logger.log"
+    log_file = "./NorIDF_nomal_logger.log"
     log_level = logging.DEBUG
 
     logger = logging.getLogger("loggingmodule.NomalLogger")
@@ -235,6 +235,10 @@ DataX = get_train_data('Train_TFIDF_dense_Nor.csv')
 DataY = get_labels("label.txt")
 Test = get_train_data("Test_TFIDF_dense_Nor.csv")
 Sfold = 5
+Eta = 0.0001
+IterTimes = 200
+print("Normalize IDF")
+print("IterTimes = ", IterTimes)
 DataListX, DataListY = split_dataset(DataX.copy(), DataY.copy(), Sfold)
 # Logger.info("DataSet is : ")
 # Logger.debug(numpy.array(DataSet))
@@ -247,13 +251,8 @@ for DataIndex in range(Sfold):
     Wt = []
     W = []
     for LabelIndex in range(3):
-        Eta = 0.0001
-        IterTimes = 200
-        # if LabelIndex == 1:
-        #     IterTimes = 200
-        #     Eta = 0.00001
         Wt.append(train(TrainDataX, TrainDataY[:, LabelIndex], Eta, IterTimes))
-        W.append(train(DataX, DataYarray[:, LabelIndex], Eta, IterTimes+50))
+        W.append(train(DataX, DataYarray[:, LabelIndex], Eta, IterTimes))
         print(Wt[LabelIndex])
         Logger.debug("-------------训练集反验证后的置信度-------------------")
         print(val(TrainDataX, TrainDataY[:, LabelIndex], Wt[LabelIndex]))
@@ -265,5 +264,5 @@ for DataIndex in range(Sfold):
     print("val correction:", val_all(ValDataX, ValDataY, Wt))
     print("train correction:", val_all(TrainDataX, TrainDataY, W))
     print("val correction:", val_all(ValDataX, ValDataY, W))
-    test(W, Test, "Test_result.csv")
+    test(W, Test, "LR+IDF+NorIDF_result.csv")
     break
